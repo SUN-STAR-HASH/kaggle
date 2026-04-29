@@ -1,6 +1,6 @@
 # Kaggle Portfolio
 
-이 저장소는 Kaggle 대회에서 수행한 프로젝트 중, 제가 직접 담당했던 모델링 작업을 포트폴리오 관점에서 정리한 아카이브입니다.
+Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델링 작업을 포트폴리오 관점에서 다시 정리한 저장소입니다.
 
 ![Kaggle](https://img.shields.io/badge/Kaggle-20BEFF?style=flat-square&logo=kaggle&logoColor=white)
 ![Computer Vision](https://img.shields.io/badge/Computer%20Vision-YOLO11m--cls-0F172A?style=flat-square)
@@ -11,7 +11,7 @@
 - `Pig Posture Recognition`: YOLO 기반 돼지 자세 분류 모델 담당
 - `Natural Language Processing with Disaster Tweets`: Logistic Regression 기반 NLP 분류 모델 담당
 
-현재 저장소에는 대회 보고서 PDF를 중심으로 정리되어 있으며, Kaggle Notebook 링크와 함께 제가 맡았던 실험 흐름과 성과를 한눈에 볼 수 있도록 구성했습니다.
+저장소에는 대회 보고서 PDF, Kaggle Notebook 링크, 그리고 제가 맡은 파트의 실험 흐름과 성과를 한눈에 볼 수 있도록 정리한 README가 포함되어 있습니다.
 
 ## Summary
 
@@ -20,29 +20,42 @@
 | Pig Posture Recognition | Computer Vision | YOLO 파트 설계 및 성능 개선 | YOLO11m-cls | Public LB F1 `0.916` |
 | NLP with Disaster Tweets | NLP / Text Classification | Logistic Regression 파이프라인 설계 | TF-IDF + Logistic Regression + NB-SVM | Accuracy `0.78`, Macro F1 `0.77` |
 
-## Preview
+## Project Preview
 
-| Project | Preview |
-| --- | --- |
-| Pig Posture Recognition | ![Pig posture result preview](assets/pig-results-preview.png) |
-| Disaster Tweets | ![Disaster tweet result preview](assets/disaster-results-preview.png) |
+| Project | Competition Header | Result Preview |
+| --- | --- | --- |
+| Pig Posture Recognition | ![Pig competition header](assets/competition-header-pig.png) | ![Pig result preview](assets/pig-results-preview.png) |
+| Disaster Tweets | ![Disaster competition header](assets/competition-header-disaster.png) | ![Disaster result preview](assets/disaster-results-preview.png) |
 
 ## 1. Pig Posture Recognition
 
-### Project Overview
+![Pig competition header](assets/competition-header-pig.png)
 
-돼지의 자세를 이미지로 분류하는 Computer Vision 대회입니다. 배경이 복잡하고, 조명 변화가 크며, 자세 클래스 간 차이가 미묘해서 단순 분류보다 입력 전처리와 추론 전략이 중요한 문제였습니다.
+### Official Competition Snapshot
 
-### My Role
+- Competition: [Pig Posture Recognition](https://www.kaggle.com/competitions/pig-posture-recognition)
+- Official description: `A Computer Vision Challenge in Precision Livestock Farming (PLF)`
+- Task: 돼지의 자세를 이미지 단위로 분류하는 computer vision 문제
+- My role: `YOLO 기반 classification pipeline` 설계 및 성능 개선
 
-저는 이 프로젝트에서 `YOLO 기반 분류 모델` 파트를 맡았습니다.
+### Dataset Snapshot
 
-- Bounding Box 기반 ROI crop 파이프라인 설계
-- YOLO11 classification 학습용 데이터 생성
-- TTA, pseudo-labeling, 하이퍼파라미터 튜닝을 통한 성능 개선
-- 방향성 클래스 혼동 방지를 위한 augmentation 제어
+보고서와 대회 데이터 구조를 기준으로 보면, 이 프로젝트는 bbox 기반 객체 중심 분류가 핵심인 과제였습니다.
 
-### Model / Experiment Design
+| Item | Details |
+| --- | --- |
+| Input | 돼지 이미지와 `train.csv`의 bbox 정보 |
+| Sample unit | `row_id` 단위 crop 이미지 |
+| Train split | 전체 이미지의 약 70%, `2,164`장 |
+| Instances in train split | `16,062`개 인스턴스 |
+| Label structure | 자세 분류용 다중 클래스 |
+| Notable classes in my work | `Lateral_left`, `Lateral_right`, `Sitting` 등 |
+
+### Evaluation
+
+대회 평가는 각 자세 클래스별 `F1 score`를 독립적으로 계산한 뒤, 클래스 빈도와 관계없이 동일 가중치로 평균하는 방식입니다. 클래스 불균형이 존재하는 데이터셋이라, 단순 정확도보다 클래스별 균형 잡힌 분류 성능이 더 중요했습니다.
+
+### My Approach
 
 핵심 아이디어는 "원본 전체 이미지"보다 "돼지 객체 중심 입력"에 집중하도록 만드는 것이었습니다.
 
@@ -50,14 +63,14 @@
 - `train.csv`의 bbox 정보를 활용해 row 단위 crop 이미지 생성
 - bbox 주변 정보를 일부 살리기 위해 `PAD=0.10` 확장 적용
 - 비율 왜곡을 줄이기 위해 `letterbox + 평균색 padding` 적용
-- `Lateral_left / Lateral_right`와 같은 방향성 레이블 보호를 위해 `flip` 비활성화
+- `Lateral_left / Lateral_right` 같은 방향성 클래스 보호를 위해 `flip` 비활성화
 - `K-Fold` 학습과 `Multi-crop TTA` 적용
 - Sitting 클래스 약세 보완을 위한 약한 oversampling / augmentation 적용
 - 이후 `pseudo-labeling`, `hyperparameter tuning`까지 확장
 
 ### Performance
 
-대회 평가지표는 클래스별 F1을 동일 가중치로 평균한 `macro F1` 계열 지표입니다. 아래 점수는 보고서에서 확인 가능한 `Public Leaderboard` 기준입니다.
+아래 수치는 현재 저장소에 포함된 보고서에서 확인 가능한 `Public Leaderboard` 기준입니다.
 
 | Setting | Public LB |
 | --- | --- |
@@ -71,30 +84,42 @@
 
 ### Why This Work Matters
 
-이 프로젝트에서는 단순히 모델만 바꾼 것이 아니라, 실제 성능 향상에 더 직접적인 영향을 주는 `입력 구성`, `클래스 특성에 맞는 augmentation 설계`, `추론 안정화 전략`을 주도적으로 다뤘습니다. 특히 좌우 방향이 의미를 가지는 클래스에서 일반적인 flip augmentation이 오히려 label noise를 만들 수 있다는 점을 고려해 설정을 조정한 부분이 실무적으로도 의미 있는 판단이었습니다.
+이 프로젝트에서는 단순히 모델만 바꾼 것이 아니라, 실제 성능에 더 직접적인 영향을 주는 `입력 구성`, `클래스 특성에 맞는 augmentation 설계`, `추론 안정화 전략`을 주도적으로 다뤘습니다. 특히 좌우 방향이 의미를 가지는 클래스에서 일반적인 flip augmentation이 오히려 label noise를 만들 수 있다는 점을 고려해 설정을 조정한 부분이 실무적으로도 의미 있는 판단이었습니다.
 
 ### Links
 
+- Kaggle Competition: [Pig Posture Recognition](https://www.kaggle.com/competitions/pig-posture-recognition)
 - Kaggle Notebook: [Pig Posture Recognition YOLO](https://www.kaggle.com/code/byeongsunmoon/pig-posture-recognition-yolo)
 - Report: [Kaggle Pig Posture Recognition대회 보고서.pdf](<./Kaggle Pig Posture Recognition대회 보고서.pdf>)
 
 ## 2. Natural Language Processing with Disaster Tweets
 
-### Project Overview
+![Disaster competition header](assets/competition-header-disaster.png)
 
-트윗이 실제 재난 상황을 설명하는지 여부를 판별하는 NLP 이진 분류 대회입니다. 짧은 문장 안에 축약어, 해시태그, 중의적 표현, 잡음이 섞여 있어 전처리와 feature engineering의 영향이 큰 과제였습니다.
+### Official Competition Snapshot
 
-### My Role
+- Competition: [Natural Language Processing with Disaster Tweets](https://www.kaggle.com/competitions/nlp-getting-started)
+- Official description: `Predict which Tweets are about real disasters and which ones are not`
+- Task: 재난 관련 트윗 여부를 분류하는 binary text classification 문제
+- My role: `Logistic Regression 기반 NLP baseline` 설계 및 고도화
 
-저는 이 프로젝트에서 `Logistic Regression 기반 분류 파이프라인`을 담당했습니다.
+### Dataset Snapshot
 
-- TF-IDF 벡터화 설계
-- Lexicon 기반 감정 피처 결합
-- NB-SVM 하이브리드 가중 적용
-- Back Translation 기반 데이터 증강 적용
-- 전통 ML 기반 baseline을 해석 가능하고 강한 모델로 고도화
+보고서 기준 이 대회 데이터는 짧은 트윗 텍스트를 중심으로 구성되어 있고, 일부 보조 컬럼과 이진 레이블을 함께 제공합니다.
 
-### Model / Experiment Design
+| Item | Details |
+| --- | --- |
+| Train samples | `7,613` |
+| Test samples | `3,263` |
+| Input columns | `id`, `keyword`, `location`, `text` |
+| Target | `target` (`1`: 재난, `0`: 비재난) |
+| Data characteristics | 축약어, 해시태그, 중의적 표현, 위치 정보 결측 등 |
+
+### Evaluation
+
+대회 평가지표는 `F1 Score`입니다. 재난 트윗 탐지에서는 false negative와 false positive를 함께 관리해야 해서, 단순 accuracy보다 precision과 recall의 균형이 중요한 문제였습니다.
+
+### My Approach
 
 딥러닝 모델과 별도로, 적은 비용으로도 강한 성능을 내는 해석 가능한 NLP baseline을 만드는 데 집중했습니다.
 
@@ -108,7 +133,7 @@
 
 ### Performance
 
-대회 평가지표는 `F1 Score`입니다. 아래 수치는 보고서에서 확인 가능한 Logistic Regression 파트 성능입니다.
+아래 수치는 현재 저장소에 포함된 보고서에서 확인 가능한 Logistic Regression 파트 성능입니다.
 
 | Metric | Result |
 | --- | --- |
@@ -128,15 +153,16 @@
 
 ### Links
 
+- Kaggle Competition: [Natural Language Processing with Disaster Tweets](https://www.kaggle.com/competitions/nlp-getting-started)
 - Kaggle Notebook: [Basic NLP on Disaster Tweets](https://www.kaggle.com/code/byeongsunmoon/basic-nlp-on-disaster-tweets)
 - Report: [Kaggle Natural Language Processing with Disaster Tweets 대회 보고서(11.30.18h).pdf](<./Kaggle Natural Language Processing with Disaster Tweets 대회 보고서(11.30.18h).pdf>)
 
 ## Portfolio Notes
 
-- 이 저장소의 설명은 `제가 직접 담당한 파트`를 중심으로 정리했습니다.
-- 점수는 현재 저장소에 포함된 보고서와 공개 Kaggle 메타데이터에서 확인 가능한 범위만 반영했습니다.
-- `Pig Posture Recognition`의 경우 YOLO 파트 기준 성능 향상 과정을 명시했습니다.
-- `Disaster Tweets`의 경우 Logistic Regression 파트의 구현 전략과 검증 성능을 중심으로 정리했습니다.
+- 이 저장소 설명은 `제가 직접 담당한 파트`를 중심으로 정리했습니다.
+- 공식 대회 설명과 헤더 이미지는 각 Kaggle competition 페이지를 참고했습니다.
+- 데이터셋 구조와 평가 지표 설명은 현재 저장소의 보고서와 대회 페이지 정보를 바탕으로 요약했습니다.
+- 점수는 현재 저장소에 포함된 보고서에서 확인 가능한 범위만 반영했습니다.
 
 ## Files
 
