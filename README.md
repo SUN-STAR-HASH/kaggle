@@ -18,11 +18,9 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 | Project | Domain | My Main Contribution | Core Strategy | Verified Result |
 | --- | --- | --- | --- | --- |
 | Pig Posture Recognition | Computer Vision | 객체 중심 crop 입력과 YOLO 학습 전략 설계 | YOLO11m-cls + K-Fold + Multi-crop TTA | Public LB F1 `0.916` |
-| NLP with Disaster Tweets | NLP / Text Classification | 직접 설계한 프랑스어 경유 이중번역으로 재난 클래스 데이터 증강 | French Back-Translation + TF-IDF + Logistic Regression | Accuracy `0.78`, Macro F1 `0.77` |
+| NLP with Disaster Tweets | NLP / Text Classification | 직접 설계한 프랑스어 경유 이중번역으로 재난 클래스 데이터 증강 | French Back-Translation Data Augmentation + Logistic Regression | Accuracy `0.78`, Macro F1 `0.77` |
 
 ## 1. Pig Posture Recognition
-
-![Pig competition header](assets/competition-header-pig.png)
 
 ### Official Competition Snapshot
 
@@ -73,17 +71,13 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 | + Pseudo-labeling | `0.878` |
 | + Hyperparameter tuning | `0.916` |
 
-### Result Takeaways
+### Conclusion
 
-| Conclusion | Evidence | Portfolio Signal |
+| Key Point | Evidence | Portfolio Signal |
 | --- | --- | --- |
 | 객체 중심 입력 구성이 성능 개선의 출발점이 됨 | bbox crop, `PAD=0.10`, `letterbox + 평균색 padding` 적용 | 이미지 전체가 아니라 분류에 필요한 객체 영역에 모델이 집중하도록 설계 |
 | 추론 안정화 전략이 leaderboard 성능을 끌어올림 | TTA 적용 후 Public LB `0.857` | 단일 예측보다 여러 crop 기반 추론을 결합해 예측 변동성 완화 |
 | 최종 고도화로 목표 성능을 달성 | pseudo-labeling과 hyperparameter tuning 이후 Public LB `0.916` | 실험 결과를 바탕으로 단계적으로 성능을 개선 |
-
-### Why This Work Matters
-
-이 프로젝트에서는 단순히 모델만 바꾼 것이 아니라, 실제 성능에 더 직접적인 영향을 주는 `입력 구성`, `클래스 특성에 맞는 augmentation 설계`, `추론 안정화 전략`을 주도적으로 다뤘습니다. 특히 좌우 방향이 의미를 가지는 클래스에서 일반적인 flip augmentation이 오히려 label noise를 만들 수 있다는 점을 고려해 설정을 조정한 부분이 실무적으로도 의미 있는 판단이었습니다.
 
 ### Links
 
@@ -92,8 +86,6 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 - Report: [Kaggle Pig Posture Recognition대회 보고서.pdf](<./Kaggle Pig Posture Recognition대회 보고서.pdf>)
 
 ## 2. Natural Language Processing with Disaster Tweets
-
-![Disaster competition header](assets/competition-header-disaster.png)
 
 ### Official Competition Snapshot
 
@@ -120,14 +112,14 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 
 ### My Approach
 
-딥러닝 모델을 무작정 키우기보다, 데이터 품질을 먼저 개선하는 방향으로 접근했습니다. 특히 재난 트윗 클래스의 표현 다양성을 늘리기 위해 `영어 원문 -> 프랑스어 -> 영어` 흐름의 이중번역(back-translation)을 직접 설계해 데이터 증강에 적용했습니다.
+딥러닝 모델을 무작정 키우기보다, 데이터 품질을 먼저 개선하는 방향으로 접근했습니다. 핵심은 재난 트윗 클래스의 표현 다양성을 늘리기 위해 `영어 원문 -> 프랑스어 -> 영어` 흐름의 이중번역(back-translation)을 직접 설계하고, 이 증강 데이터를 학습 파이프라인에 반영한 것입니다.
 
 | Step | What I Did | Why It Mattered |
 | --- | --- | --- |
-| 데이터 증강 설계 | 재난 클래스 문장을 프랑스어로 번역한 뒤 다시 영어로 되돌리는 back-translation 적용 | 원문 의미는 유지하면서 표현만 달라진 고품질 학습 샘플 확보 |
-| 증강 품질 관리 | 단순 복제가 아니라 의미가 크게 훼손되지 않는 문장을 중심으로 학습 데이터에 반영 | 노이즈를 줄이고 재난 클래스의 표현 다양성 보강 |
-| 특징 추출 | `TF-IDF` 기반 텍스트 벡터화와 보조 feature 사용 | Logistic Regression이 짧은 트윗에서도 핵심 단어 패턴을 활용할 수 있도록 구성 |
-| 분류 모델 | `scikit-learn LogisticRegression` + `L2 regularization` 사용 | 비용이 낮고 해석 가능한 baseline을 안정적으로 고도화 |
+| 프랑스어 경유 이중번역 설계 | 재난 클래스 문장을 프랑스어로 번역한 뒤 다시 영어로 복원 | 원문 의미는 유지하면서 표현이 달라진 추가 학습 샘플 확보 |
+| 증강 데이터 품질 관리 | 의미가 크게 훼손되지 않는 문장을 중심으로 학습 데이터에 반영 | 단순 복제보다 노이즈가 적고 재난 표현의 다양성을 보강 |
+| 데이터 중심 학습 전략 | 모델 구조 변경보다 증강 데이터의 품질과 클래스 보강에 집중 | 짧고 불균형한 트윗 데이터에서 재난 클래스 학습 신호 강화 |
+| 분류 파이프라인 구성 | 증강된 문장을 Logistic Regression 기반 분류 파이프라인에 적용 | 비용이 낮고 해석 가능한 방식으로 성능을 안정적으로 확인 |
 
 ### Performance
 
@@ -141,17 +133,13 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 | Disaster class F1 | `0.74` |
 | Disaster class Recall | `0.72` |
 
-### Result Takeaways
+### Conclusion
 
-| Conclusion | Evidence | Portfolio Signal |
+| Key Point | Evidence | Portfolio Signal |
 | --- | --- | --- |
-| 핵심 기여는 모델 복잡도보다 데이터 증강 전략에 있음 | 프랑스어 경유 back-translation으로 재난 클래스 학습 샘플 보강 | 문제 특성에 맞는 데이터 중심 개선을 직접 설계 |
-| 고품질 증강이 짧은 트윗 분류의 한계를 보완 | Accuracy `0.78`, Macro F1 `0.77`, Disaster class F1 `0.74` | 단순 feature 튜닝이 아니라 클래스 표현 다양성 자체를 개선 |
-| 해석 가능한 모델로 실용적인 baseline 구축 | TF-IDF + Logistic Regression 기반으로 성능 확인 | 빠르게 반복 실험하고 결과를 설명할 수 있는 파이프라인 구성 |
-
-### Why This Work Matters
-
-이 작업의 강점은 단순히 Logistic Regression을 사용한 것이 아니라, 데이터가 부족한 재난 클래스에 대해 `프랑스어 경유 이중번역`을 직접 적용해 의미는 유지하면서 표현을 다양화했다는 점입니다. 결과적으로 복잡한 딥러닝 모델 대비 비용이 낮고 해석 가능성이 높은 baseline을 만들면서도, 데이터 중심의 성능 개선 경험을 보여줄 수 있었습니다.
+| 핵심 기여는 프랑스어 경유 이중번역 기반 데이터 증강 | 재난 클래스 문장을 `영어 -> 프랑스어 -> 영어`로 변환해 학습 샘플 보강 | 직접 생각한 데이터 증강 전략을 실제 모델 성능 개선 흐름에 적용 |
+| 고품질 증강이 짧은 트윗 분류의 한계를 보완 | Accuracy `0.78`, Macro F1 `0.77`, Disaster class F1 `0.74` | 단순 feature 튜닝보다 클래스 표현 다양성 자체를 개선 |
+| 해석 가능한 모델로 실용적인 baseline 구축 | Logistic Regression 기반으로 성능 확인 | 빠르게 반복 실험하고 결과를 설명할 수 있는 파이프라인 구성 |
 
 ### Links
 
@@ -162,7 +150,7 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 ## Portfolio Notes
 
 - 이 저장소 설명은 `제가 직접 담당한 파트`를 중심으로 정리했습니다.
-- 공식 대회 설명과 헤더 이미지는 각 Kaggle competition 페이지를 참고했습니다.
+- 공식 대회 설명은 각 Kaggle competition 페이지를 참고했습니다.
 - 데이터셋 구조와 평가 지표 설명은 현재 저장소의 보고서와 대회 페이지 정보를 바탕으로 요약했습니다.
 - 점수는 현재 저장소에 포함된 보고서에서 확인 가능한 범위만 반영했습니다.
 
