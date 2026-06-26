@@ -4,28 +4,21 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 
 ![Kaggle](https://img.shields.io/badge/Kaggle-20BEFF?style=flat-square&logo=kaggle&logoColor=white)
 ![Computer Vision](https://img.shields.io/badge/Computer%20Vision-YOLO11m--cls-0F172A?style=flat-square)
-![NLP](https://img.shields.io/badge/NLP-TF--IDF%20%2B%20Logistic%20Regression-0B6E4F?style=flat-square)
+![NLP](https://img.shields.io/badge/NLP-French%20Back--Translation%20%2B%20LR-0B6E4F?style=flat-square)
 ![Pig F1](https://img.shields.io/badge/Pig%20Posture%20Public%20LB-0.916-F59E0B?style=flat-square)
 ![Disaster Macro F1](https://img.shields.io/badge/Disaster%20Tweets%20Macro%20F1-0.77-2563EB?style=flat-square)
 
 - `Pig Posture Recognition`: YOLO 기반 돼지 자세 분류 모델 담당
-- `Natural Language Processing with Disaster Tweets`: Logistic Regression 기반 NLP 분류 모델 담당
+- `Natural Language Processing with Disaster Tweets`: 프랑스어 경유 이중번역 데이터 증강과 Logistic Regression 기반 NLP 분류 모델 담당
 
 저장소에는 대회 보고서 PDF, Kaggle Notebook 링크, 그리고 제가 맡은 파트의 실험 흐름과 성과를 한눈에 볼 수 있도록 정리한 README가 포함되어 있습니다.
 
 ## Summary
 
-| Project | Domain | My Role | Main Model | Verified Result |
+| Project | Domain | My Main Contribution | Core Strategy | Verified Result |
 | --- | --- | --- | --- | --- |
-| Pig Posture Recognition | Computer Vision | YOLO 파트 설계 및 성능 개선 | YOLO11m-cls | Public LB F1 `0.916` |
-| NLP with Disaster Tweets | NLP / Text Classification | Logistic Regression 파이프라인 설계 | TF-IDF + Logistic Regression + NB-SVM | Accuracy `0.78`, Macro F1 `0.77` |
-
-## Project Preview
-
-| Project | Competition Header | Result Preview |
-| --- | --- | --- |
-| Pig Posture Recognition | ![Pig competition header](assets/competition-header-pig.png) | ![Pig result preview](assets/pig-results-preview.png) |
-| Disaster Tweets | ![Disaster competition header](assets/competition-header-disaster.png) | ![Disaster result preview](assets/disaster-results-preview.png) |
+| Pig Posture Recognition | Computer Vision | 객체 중심 crop 입력과 YOLO 학습 전략 설계 | YOLO11m-cls + K-Fold + Multi-crop TTA | Public LB F1 `0.916` |
+| NLP with Disaster Tweets | NLP / Text Classification | 직접 설계한 프랑스어 경유 이중번역으로 재난 클래스 데이터 증강 | French Back-Translation + TF-IDF + Logistic Regression | Accuracy `0.78`, Macro F1 `0.77` |
 
 ## 1. Pig Posture Recognition
 
@@ -80,7 +73,13 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 | + Pseudo-labeling | `0.878` |
 | + Hyperparameter tuning | `0.916` |
 
-![Pig posture recognition result preview](assets/pig-results-preview.png)
+### Result Takeaways
+
+| Conclusion | Evidence | Portfolio Signal |
+| --- | --- | --- |
+| 객체 중심 입력 구성이 성능 개선의 출발점이 됨 | bbox crop, `PAD=0.10`, `letterbox + 평균색 padding` 적용 | 이미지 전체가 아니라 분류에 필요한 객체 영역에 모델이 집중하도록 설계 |
+| 추론 안정화 전략이 leaderboard 성능을 끌어올림 | TTA 적용 후 Public LB `0.857` | 단일 예측보다 여러 crop 기반 추론을 결합해 예측 변동성 완화 |
+| 최종 고도화로 목표 성능을 달성 | pseudo-labeling과 hyperparameter tuning 이후 Public LB `0.916` | 실험 결과를 바탕으로 단계적으로 성능을 개선 |
 
 ### Why This Work Matters
 
@@ -101,7 +100,7 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 - Competition: [Natural Language Processing with Disaster Tweets](https://www.kaggle.com/competitions/nlp-getting-started)
 - Official description: `Predict which Tweets are about real disasters and which ones are not`
 - Task: 재난 관련 트윗 여부를 분류하는 binary text classification 문제
-- My role: `Logistic Regression 기반 NLP baseline` 설계 및 고도화
+- My role: `프랑스어 경유 이중번역 데이터 증강 + Logistic Regression 기반 NLP pipeline` 설계 및 고도화
 
 ### Dataset Snapshot
 
@@ -121,15 +120,14 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 
 ### My Approach
 
-딥러닝 모델과 별도로, 적은 비용으로도 강한 성능을 내는 해석 가능한 NLP baseline을 만드는 데 집중했습니다.
+딥러닝 모델을 무작정 키우기보다, 데이터 품질을 먼저 개선하는 방향으로 접근했습니다. 특히 재난 트윗 클래스의 표현 다양성을 늘리기 위해 `영어 원문 -> 프랑스어 -> 영어` 흐름의 이중번역(back-translation)을 직접 설계해 데이터 증강에 적용했습니다.
 
-- `TF-IDF` 벡터화
-- `ngram_range=(1, 3)`로 unigram, bigram, trigram 반영
-- `min_df=3`, `sublinear_tf=True` 설정
-- 상위 `8,000`개 단어 기반 `Lexicon` 점수 추가
-- `NB-SVM` 방식으로 단어의 재난 관련도 가중 반영
-- `Pseudo Back-Translation`으로 재난 클래스 데이터 증강
-- `scikit-learn LogisticRegression` + `L2 regularization` 사용
+| Step | What I Did | Why It Mattered |
+| --- | --- | --- |
+| 데이터 증강 설계 | 재난 클래스 문장을 프랑스어로 번역한 뒤 다시 영어로 되돌리는 back-translation 적용 | 원문 의미는 유지하면서 표현만 달라진 고품질 학습 샘플 확보 |
+| 증강 품질 관리 | 단순 복제가 아니라 의미가 크게 훼손되지 않는 문장을 중심으로 학습 데이터에 반영 | 노이즈를 줄이고 재난 클래스의 표현 다양성 보강 |
+| 특징 추출 | `TF-IDF` 기반 텍스트 벡터화와 보조 feature 사용 | Logistic Regression이 짧은 트윗에서도 핵심 단어 패턴을 활용할 수 있도록 구성 |
+| 분류 모델 | `scikit-learn LogisticRegression` + `L2 regularization` 사용 | 비용이 낮고 해석 가능한 baseline을 안정적으로 고도화 |
 
 ### Performance
 
@@ -143,13 +141,17 @@ Kaggle 대회에서 진행한 프로젝트 중, 제가 직접 맡았던 모델�
 | Disaster class F1 | `0.74` |
 | Disaster class Recall | `0.72` |
 
-추가로 보고서 기준, `NB-SVM` 가중 적용은 F1-score를 약 `+0.03` 개선하는 효과가 있었습니다.
+### Result Takeaways
 
-![Disaster tweets result preview](assets/disaster-results-preview.png)
+| Conclusion | Evidence | Portfolio Signal |
+| --- | --- | --- |
+| 핵심 기여는 모델 복잡도보다 데이터 증강 전략에 있음 | 프랑스어 경유 back-translation으로 재난 클래스 학습 샘플 보강 | 문제 특성에 맞는 데이터 중심 개선을 직접 설계 |
+| 고품질 증강이 짧은 트윗 분류의 한계를 보완 | Accuracy `0.78`, Macro F1 `0.77`, Disaster class F1 `0.74` | 단순 feature 튜닝이 아니라 클래스 표현 다양성 자체를 개선 |
+| 해석 가능한 모델로 실용적인 baseline 구축 | TF-IDF + Logistic Regression 기반으로 성능 확인 | 빠르게 반복 실험하고 결과를 설명할 수 있는 파이프라인 구성 |
 
 ### Why This Work Matters
 
-이 작업의 강점은 단순히 Logistic Regression을 사용한 것이 아니라, `텍스트 전처리`, `feature engineering`, `클래스 불균형 완화`, `확률 기반 가중 설계`를 결합해 전통적 머신러닝 모델의 한계를 실험적으로 밀어 올렸다는 점입니다. 결과적으로 복잡한 딥러닝 모델 대비 비용이 낮고 해석 가능성이 높은 강한 baseline을 구축했습니다.
+이 작업의 강점은 단순히 Logistic Regression을 사용한 것이 아니라, 데이터가 부족한 재난 클래스에 대해 `프랑스어 경유 이중번역`을 직접 적용해 의미는 유지하면서 표현을 다양화했다는 점입니다. 결과적으로 복잡한 딥러닝 모델 대비 비용이 낮고 해석 가능성이 높은 baseline을 만들면서도, 데이터 중심의 성능 개선 경험을 보여줄 수 있었습니다.
 
 ### Links
 
